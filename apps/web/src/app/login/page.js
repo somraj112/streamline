@@ -346,7 +346,12 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [touched, setTouched] = useState({});
   const [mounted, setMounted] = useState(false);
+
+  const emailError = !email.trim() ? "Email is required" : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "Enter a valid email address" : null;
+  const passwordError = !password ? "Password is required" : password.length < 8 ? "Password must be at least 8 characters" : !/[A-Z]/.test(password) ? "Password must contain an uppercase letter" : !/[a-z]/.test(password) ? "Password must contain a lowercase letter" : !/[0-9]/.test(password) ? "Password must contain a number" : null;
+  const isFormValid = email.trim() && !emailError && password && !passwordError;
 
   const pageRef = useRef(null);
   const cardRef = useRef(null);
@@ -365,8 +370,13 @@ export default function LoginPage() {
     card.style.setProperty("--mouse-y", `${y}px`);
   };
 
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setTouched({ email: true, password: true });
   };
 
   if (!mounted) {
@@ -507,10 +517,12 @@ export default function LoginPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => handleBlur("email")}
                 placeholder="you@example.com"
                 autoComplete="email"
               />
             </div>
+            {touched.email && emailError && <span className="input-group__warning">{emailError}</span>}
           </div>
 
           {/* Password */}
@@ -528,6 +540,7 @@ export default function LoginPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => handleBlur("password")}
                 placeholder="Enter your password"
                 autoComplete="current-password"
               />
@@ -540,6 +553,7 @@ export default function LoginPage() {
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
+            {touched.password && passwordError && <span className="input-group__warning">{passwordError}</span>}
           </div>
 
           {/* Extras */}
@@ -550,7 +564,7 @@ export default function LoginPage() {
           </div>
 
           {/* Submit */}
-          <button type="submit" className="login-button">
+          <button type="submit" className="login-button" disabled={!isFormValid}>
             Sign In
           </button>
         </form>
