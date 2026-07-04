@@ -364,7 +364,14 @@ export default function SignupPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
   const [agreeTerms, setAgreeTerms] = useState(false);
+  const [touched, setTouched] = useState({});
   const [mounted, setMounted] = useState(false);
+
+  const nameError = !name.trim() ? "Full name is required" : name.trim().length < 2 ? "Name must be at least 2 characters" : null;
+  const emailError = !email.trim() ? "Email is required" : !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? "Enter a valid email address" : null;
+  const passwordError = !password ? "Password is required" : password.length < 8 ? "Password must be at least 8 characters" : !/[A-Z]/.test(password) ? "Password must contain an uppercase letter" : !/[a-z]/.test(password) ? "Password must contain a lowercase letter" : !/[0-9]/.test(password) ? "Password must contain a number" : null;
+  const confirmError = !confirmPassword ? "Please confirm your password" : confirmPassword !== password ? "Passwords do not match" : null;
+  const isFormValid = name.trim() && !nameError && email.trim() && !emailError && password && !passwordError && confirmPassword && !confirmError && agreeTerms;
 
   const pageRef = useRef(null);
   const cardRef = useRef(null);
@@ -383,8 +390,13 @@ export default function SignupPage() {
     card.style.setProperty("--mouse-y", `${y}px`);
   };
 
+  const handleBlur = (field) => {
+    setTouched((prev) => ({ ...prev, [field]: true }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
+    setTouched({ name: true, email: true, password: true, confirm: true });
   };
 
   if (!mounted) {
@@ -520,10 +532,12 @@ export default function SignupPage() {
                 type="text"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
+                onBlur={() => handleBlur("name")}
                 placeholder="John Doe"
                 autoComplete="name"
               />
             </div>
+            {touched.name && nameError && <span className="input-group__warning">{nameError}</span>}
           </div>
 
           {/* Email */}
@@ -541,10 +555,12 @@ export default function SignupPage() {
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onBlur={() => handleBlur("email")}
                 placeholder="you@example.com"
                 autoComplete="email"
               />
             </div>
+            {touched.email && emailError && <span className="input-group__warning">{emailError}</span>}
           </div>
 
           {/* Password */}
@@ -562,6 +578,7 @@ export default function SignupPage() {
                 type={showPassword ? "text" : "password"}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                onBlur={() => handleBlur("password")}
                 placeholder="Create password"
                 autoComplete="new-password"
               />
@@ -574,6 +591,7 @@ export default function SignupPage() {
                 {showPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
+            {touched.password && passwordError && <span className="input-group__warning">{passwordError}</span>}
           </div>
 
           {/* Confirm Password */}
@@ -591,6 +609,7 @@ export default function SignupPage() {
                 type={showConfirmPassword ? "text" : "password"}
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
+                onBlur={() => handleBlur("confirm")}
                 placeholder="Confirm password"
                 autoComplete="new-password"
               />
@@ -605,6 +624,7 @@ export default function SignupPage() {
                 {showConfirmPassword ? <EyeOffIcon /> : <EyeIcon />}
               </button>
             </div>
+            {touched.confirm && confirmError && <span className="input-group__warning">{confirmError}</span>}
           </div>
 
           {/* Agreement Checkbox */}
@@ -625,7 +645,7 @@ export default function SignupPage() {
           </label>
 
           {/* Submit */}
-          <button type="submit" className="signup-button">
+          <button type="submit" className="signup-button" disabled={!isFormValid}>
             Sign Up
           </button>
         </form>
