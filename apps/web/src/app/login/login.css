@@ -113,6 +113,7 @@
   background: rgba(124, 108, 248, 0.5);
   box-shadow: 0 0 6px rgba(124, 108, 248, 0.3);
   opacity: 0.08;
+  will-change: transform;
 }
 
 .bg-node--1 { top: 10%; left: 5%; animation: node-pulse 4s ease-in-out infinite; }
@@ -475,7 +476,7 @@
 .login-card__sheen {
   position: absolute;
   top: 0;
-  left: -150%;
+  left: 0;
   width: 100%;
   height: 100%;
   background: linear-gradient(
@@ -488,15 +489,16 @@
     rgba(255, 255, 255, 0.01) 70%,
     transparent
   );
-  transform: skewX(-25deg);
+  transform: skewX(-25deg) translateX(-150%);
   pointer-events: none;
   z-index: 1;
+  will-change: transform;
   animation: shine-sweep 10s ease-in-out infinite;
 }
 
 @keyframes shine-sweep {
-  0% { left: -150%; }
-  15%, 100% { left: 150%; }
+  0% { transform: translateX(-150%); }
+  15%, 100% { transform: translateX(150%); }
 }
 
 @keyframes card-enter {

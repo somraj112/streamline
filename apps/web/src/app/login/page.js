@@ -6,39 +6,32 @@ import "./login.css";
 
 /* ─── Animated Waveform SVG (for background) ─── */
 function AnimatedWaveform({ className, width = 160, height = 30 }) {
+  const [scope, animate] = useAnimate();
   const pathRef = useRef(null);
+  const frameRef = useRef(null);
 
   useEffect(() => {
-    let frame;
+    const segments = 20;
+    const step = width / segments;
+    const halfH = height / 2;
     let t = 0;
-    const animate = () => {
+
+    const tick = () => {
       t += 0.02;
-      const points = [];
-      const segments = 20;
+      let d = "";
       for (let i = 0; i <= segments; i++) {
-        const x = (i / segments) * width;
-        const y =
-          height / 2 +
-          Math.sin(t + i * 0.4) * 6 +
-          Math.sin(t * 1.3 + i * 0.7) * 3;
-        points.push(`${i === 0 ? "M" : "L"} ${x.toFixed(1)} ${y.toFixed(1)}`);
+        const y = halfH + Math.sin(t + i * 0.4) * 6 + Math.sin(t * 1.3 + i * 0.7) * 3;
+        d += `${i === 0 ? "M" : "L"}${(i * step).toFixed(1)} ${y.toFixed(1)}`;
       }
-      if (pathRef.current) {
-        pathRef.current.setAttribute("d", points.join(" "));
-      }
-      frame = requestAnimationFrame(animate);
+      if (pathRef.current) pathRef.current.setAttribute("d", d);
+      frameRef.current = requestAnimationFrame(tick);
     };
-    animate();
-    return () => cancelAnimationFrame(frame);
+    frameRef.current = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(frameRef.current);
   }, [width, height]);
 
   return (
-    <svg
-      className={className}
-      width={width}
-      height={height}
-      viewBox={`0 0 ${width} ${height}`}
-    >
+    <svg ref={scope} className={className} width={width} height={height} viewBox={`0 0 ${width} ${height}`}>
       <path ref={pathRef} />
     </svg>
   );
@@ -167,12 +160,12 @@ function StreamlineLogo() {
 
 /* ─── Circuit-style SVG Connector Lines ─── */
 function ConnectorLines({ cardRef, pageRef }) {
-  const svgRef = useRef(null);
   const [paths, setPaths] = useState([]);
+  const rafRef = useRef(null);
+  const cardCacheRef = useRef(null);
 
   const computePaths = useCallback(() => {
     if (!pageRef.current || !cardRef.current) return;
-
     const page = pageRef.current.getBoundingClientRect();
     const card = cardRef.current.getBoundingClientRect();
 
@@ -183,120 +176,72 @@ function ConnectorLines({ cardRef, pageRef }) {
     const cardCX = cx + cw / 2;
     const cardCY = cy + ch / 2;
 
-    const statusCards = pageRef.current.querySelectorAll(".status-card");
-    const newPaths = [];
+    const cards = cardCacheRef.current ||
+      (cardCacheRef.current = pageRef.current.querySelectorAll(".status-card"));
+    const len = cards.length;
+    const newPaths = new Array(len);
 
-    statusCards.forEach((sc) => {
+    for (let i = 0; i < len; i++) {
+      const sc = cards[i];
       const r = sc.getBoundingClientRect();
-      const isLeft = (r.left + r.width / 2) < cardCX;
-      const isTop = (r.top + r.height / 2) < cardCY;
+      const isLeft = r.left + r.width / 2 < cardCX;
+      const isTop = r.top + r.height / 2 < cardCY;
 
-      // Start path EXACTLY from the border edge of the corner card
-      let scx, scy;
-      if (isLeft) {
-        // Starts at right edge of Left corner card
-        scx = r.right - page.left;
-        scy = r.top - page.top + r.height / 2;
-      } else {
-        // Starts at left edge of Right corner card
-        scx = r.left - page.left;
-        scy = r.top - page.top + r.height / 2;
-      }
+      const scx = isLeft ? r.right - page.left : r.left - page.left;
+      const scy = r.top - page.top + r.height / 2;
 
-      // Ends at exact left/right border edge of login card
-      let targetX, targetY;
-      if (isLeft && isTop) {
-        targetX = cx;
-        targetY = cy + ch * 0.22;
-      } else if (!isLeft && isTop) {
-        targetX = cx + cw;
-        targetY = cy + ch * 0.22;
-      } else if (isLeft && !isTop) {
-        targetX = cx;
-        targetY = cy + ch * 0.78;
-      } else {
-        targetX = cx + cw;
-        targetY = cy + ch * 0.78;
-      }
+      let targetX = isLeft ? cx : cx + cw;
+      let targetY = isTop ? cy + ch * 0.22 : cy + ch * 0.78;
 
-      // 45-degree orthodiagonal trace calculation
-      const dx_total = Math.abs(targetX - scx);
-      const dy_total = Math.abs(targetY - scy);
-      const h_span = (dx_total - dy_total) / 2;
+      const dx = Math.abs(targetX - scx);
+      const dy = Math.abs(targetY - scy);
+      const halfSpan = (dx - dy) / 2;
 
-      let d;
-      let corners = [];
+      const c1x = isLeft ? scx + halfSpan : scx - halfSpan;
+      const c1y = scy;
+      const c2x = isLeft ? targetX - halfSpan : targetX + halfSpan;
+      const c2y = targetY;
 
-      if (isLeft) {
-        const c1x = scx + h_span;
-        const c1y = scy;
-        const c2x = targetX - h_span;
-        const c2y = targetY;
+      const d = `M${scx} ${scy}L${c1x} ${c1y}L${c2x} ${c2y}L${targetX} ${targetY}`;
+      const corners = [
+        { x: scx, y: scy },
+        { x: c1x, y: c1y },
+        { x: c2x, y: c2y },
+        { x: targetX, y: targetY },
+      ];
 
-        d = `M ${scx} ${scy} L ${c1x} ${c1y} L ${c2x} ${c2y} L ${targetX} ${targetY}`;
-        corners = [
-          { x: scx, y: scy },
-          { x: c1x, y: c1y },
-          { x: c2x, y: c2y },
-          { x: targetX, y: targetY },
-        ];
-      } else {
-        const c1x = scx - h_span;
-        const c1y = scy;
-        const c2x = targetX + h_span;
-        const c2y = targetY;
-
-        d = `M ${scx} ${scy} L ${c1x} ${c1y} L ${c2x} ${c2y} L ${targetX} ${targetY}`;
-        corners = [
-          { x: scx, y: scy },
-          { x: c1x, y: c1y },
-          { x: c2x, y: c2y },
-          { x: targetX, y: targetY },
-        ];
-      }
-
-      newPaths.push({
-        d,
-        corners,
-        startX: scx,
-        startY: scy,
-        endX: targetX,
-        endY: targetY,
-      });
-    });
+      newPaths[i] = { d, corners, startX: scx, startY: scy, endX: targetX, endY: targetY };
+    }
 
     setPaths(newPaths);
   }, [cardRef, pageRef]);
 
   useEffect(() => {
-    const timer = setTimeout(computePaths, 300);
-    window.addEventListener("resize", computePaths);
+    rafRef.current = requestAnimationFrame(computePaths);
+    const onResize = () => {
+      cardCacheRef.current = null;
+      cancelAnimationFrame(rafRef.current);
+      rafRef.current = requestAnimationFrame(computePaths);
+    };
+    window.addEventListener("resize", onResize);
     return () => {
-      clearTimeout(timer);
-      window.removeEventListener("resize", computePaths);
+      cancelAnimationFrame(rafRef.current);
+      window.removeEventListener("resize", onResize);
     };
   }, [computePaths]);
 
   if (paths.length === 0) return null;
 
-  const gradientIds = [
-    "conn-grad-tl",
-    "conn-grad-tr",
-    "conn-grad-bl",
-    "conn-grad-br",
-  ];
+  const gradientIds = ["conn-grad-tl", "conn-grad-tr", "conn-grad-bl", "conn-grad-br"];
 
   return (
-    <svg ref={svgRef} className="connector-svg">
+    <svg className="connector-svg">
       <defs>
         {paths.map((p, i) => (
           <linearGradient
             key={gradientIds[i]}
             id={gradientIds[i]}
-            x1={p.startX}
-            y1={p.startY}
-            x2={p.endX}
-            y2={p.endY}
+            x1={p.startX} y1={p.startY} x2={p.endX} y2={p.endY}
             gradientUnits="userSpaceOnUse"
           >
             <stop offset="0%" stopColor="#7C6CF8" stopOpacity="0.3" />
@@ -305,35 +250,21 @@ function ConnectorLines({ cardRef, pageRef }) {
           </linearGradient>
         ))}
       </defs>
-
       {paths.map((p, i) => (
         <g key={i}>
-          <path
-            className="connector-path"
-            d={p.d}
-            stroke={`url(#${gradientIds[i]})`}
-          />
-          <path
-            className="connector-path-glow"
-            d={p.d}
-            stroke="#7C6CF8"
-          />
-          {p.corners.map((c, ci) => {
-            const isTerminal = ci === 0 || ci === 3;
-            return (
-              <circle
-                key={ci}
-                className="connector-node"
-                cx={c.x}
-                cy={c.y}
-                r={isTerminal ? 3.5 : 2}
-                fill={isTerminal ? "#7C6CF8" : "none"}
-                stroke="#7C6CF8"
-                strokeWidth={1.2}
-                opacity={isTerminal ? 0.9 : 0.7}
-              />
-            );
-          })}
+          <path className="connector-path" d={p.d} stroke={`url(#${gradientIds[i]})`} />
+          <path className="connector-path-glow" d={p.d} stroke="#7C6CF8" />
+          {p.corners.map((c, ci) => (
+            <circle
+              key={ci}
+              className="connector-node"
+              cx={c.x} cy={c.y}
+              r={ci === 0 || ci === 3 ? 3.5 : 2}
+              fill={ci === 0 || ci === 3 ? "#7C6CF8" : "none"}
+              stroke="#7C6CF8" strokeWidth={1.2}
+              opacity={ci === 0 || ci === 3 ? 0.9 : 0.7}
+            />
+          ))}
         </g>
       ))}
     </svg>
