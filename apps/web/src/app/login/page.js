@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef, useCallback } from "react";
+import { motion } from "framer-motion";
 import "./login.css";
 
 /* ─── Animated Waveform SVG (for background) ─── */
@@ -379,6 +380,15 @@ export default function LoginPage() {
     setTouched({ email: true, password: true });
   };
 
+  const fadeUp = (delay = 0) => ({
+    initial: { opacity: 0, y: 16 },
+    animate: {
+      opacity: 1,
+      y: 0,
+      transition: { duration: 0.8, ease: [0.16, 1, 0.3, 1], delay },
+    },
+  });
+
   if (!mounted) {
     return <div className="login-page" />;
   }
@@ -439,32 +449,44 @@ export default function LoginPage() {
 
       {/* ── Status Cards ── */}
       {/* Top Left — LIVE */}
-      <div className="status-card status-card--tl">
+      <motion.div
+        className="status-card status-card--tl"
+        {...fadeUp(0.5)}
+      >
         <div className="status-card__header">
           <span className="status-card__live-dot" />
           <span>LIVE</span>
         </div>
         <div className="status-card__value">3.2K</div>
         <div className="status-card__meta">watching now</div>
-      </div>
+      </motion.div>
 
       {/* Top Right — Stream Quality */}
-      <div className="status-card status-card--tr">
+      <motion.div
+        className="status-card status-card--tr"
+        {...fadeUp(0.7)}
+      >
         <div className="status-card__header">Stream Quality</div>
         <div className="status-card__quality-row">
           <span className="status-card__quality-main">1080p</span>
           <span className="status-card__quality-sub">60 FPS</span>
         </div>
-      </div>
+      </motion.div>
 
       {/* Bottom Left — Audio Levels */}
-      <div className="status-card status-card--bl">
+      <motion.div
+        className="status-card status-card--bl"
+        {...fadeUp(0.9)}
+      >
         <div className="status-card__header">Audio Levels</div>
         <MiniWaveform />
-      </div>
+      </motion.div>
 
       {/* Bottom Right — Network */}
-      <div className="status-card status-card--br">
+      <motion.div
+        className="status-card status-card--br"
+        {...fadeUp(1.1)}
+      >
         <div className="status-card__header">
           <span className="status-card__network-dot" />
           <span>Network</span>
@@ -473,13 +495,14 @@ export default function LoginPage() {
           Excellent
         </div>
         <div className="status-card__meta">18 ms latency</div>
-      </div>
+      </motion.div>
 
       {/* ── Login Card ── */}
-      <div
+      <motion.div
         className="login-card"
         ref={cardRef}
         onMouseMove={handleMouseMove}
+        {...fadeUp(0.15)}
       >
         {/* Dynamic interactive elements inside the card */}
         <div className="login-card__interactive-border" />
@@ -619,7 +642,7 @@ export default function LoginPage() {
         <p className="login-signup">
           Don&apos;t have an account? <a href="/signup">Sign up</a>
         </p>
-      </div>
+      </motion.div>
     </div>
   );
 }
