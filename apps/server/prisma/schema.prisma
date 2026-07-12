@@ -69,6 +69,9 @@ model Category {
 
   name String @unique
   icon String
+
+  // Relations
+  streams Stream[]
 }
 
 model Stream {
@@ -78,7 +81,7 @@ model Stream {
 
   title       String
   description String?
-  category    String
+  categoryId String
 
   visibility Visibility
   status     StreamStatus
@@ -93,6 +96,8 @@ model Stream {
 
   // Relations
   creator User @relation(fields: [creatorId], references: [id])
+
+  category Category @relation(fields: [categoryId], references: [id])
 
   chatMessages ChatMessage[]
 
@@ -112,6 +117,7 @@ model Stream {
   @@index([status])
   @@index([createdAt])
   @@index([creatorId, createdAt])
+  @@index([categoryId])
 }
 
 model Follow {
@@ -140,7 +146,7 @@ model ChatMessage {
 
   deleted Boolean @default(false)
 
-  createdAt DateTime @default(now())
+  sendAt DateTime @default(now())
 
   stream Stream @relation(fields: [streamId], references: [id])
   sender User   @relation(fields: [senderId], references: [id])
