@@ -68,7 +68,7 @@ model Category {
   id String @id @default(uuid())
 
   name String @unique
-  icon String
+  icon String?
 
   // Relations
   streams Stream[]
@@ -81,10 +81,11 @@ model Stream {
 
   title       String
   description String?
+  thumbnail String?
   categoryId String
 
-  visibility Visibility
-  status     StreamStatus
+  visibility Visibility @default(PUBLIC)
+  status     StreamStatus @default(SCHEDULED)
 
   streamKey String @unique
 
@@ -159,7 +160,7 @@ model Notification {
   id String @id @default(uuid())
 
   receiverId String
-  senderId   String
+  senderId   String?
 
   type NotificationType
 
@@ -171,7 +172,7 @@ model Notification {
   createdAt DateTime @default(now())
 
   receiver User @relation("NotificationReceiver", fields: [receiverId], references: [id])
-  sender   User @relation("NotificationSender", fields: [senderId], references: [id])
+  sender   User? @relation("NotificationSender", fields: [senderId], references: [id])
 
   @@index([receiverId])
   @@index([senderId])
@@ -181,7 +182,7 @@ model Recording {
   id String @id @default(uuid())
 
   streamId String @unique
-
+  storageProvider String?
   videoUrl  String
   thumbnail String
 
@@ -232,7 +233,7 @@ model Ban {
   streamId String
   userId   String
 
-  reason String
+  reason String?
 
   bannedAt DateTime @default(now())
 
